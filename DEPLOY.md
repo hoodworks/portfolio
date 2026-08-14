@@ -117,19 +117,19 @@ Every future commit to `main` republishes automatically in about 60 seconds.
 
 ## Step 4 — Point your own domain at it (optional)
 
-Do this whenever you're ready to serve the site at `hoodworksvideo.com` or
-`portfolio.hoodworksvideo.com`.
+Do this whenever you're ready to serve the site at `hoodworks.media` or
+`portfolio.hoodworks.media`.
 
 ### 4a. Decide which address you want
 
-- **Subdomain** — `portfolio.hoodworksvideo.com` or `www.hoodworksvideo.com`.
+- **Subdomain** — `portfolio.hoodworks.media` or `www.hoodworks.media`.
   Simpler, safer, and it does not disturb your existing site at the root domain.
-- **Root/apex** — `hoodworksvideo.com` with no prefix. This takes over your main
+- **Root/apex** — `hoodworks.media` with no prefix. This takes over your main
   domain. Only do this if nothing else is currently served there.
 
 ### 4b. Add DNS records at your domain registrar
 
-Log in wherever you bought `hoodworksvideo.com` (GoDaddy, Namecheap, Google
+Log in wherever you bought `hoodworks.media` (GoDaddy, Namecheap, Google
 Domains/Squarespace, Cloudflare, Wix, etc.) and open the **DNS** settings.
 
 **For a subdomain** — add one record:
@@ -138,7 +138,7 @@ Domains/Squarespace, Cloudflare, Wix, etc.) and open the **DNS** settings.
 |---|---|---|---|
 | `CNAME` | `portfolio` | `hoodworks.github.io` | default |
 
-(Use `www` in the Name field if you want `www.hoodworksvideo.com`.)
+(Use `www` in the Name field if you want `www.hoodworks.media`.)
 
 **For the root domain** — add four A records and four AAAA records:
 
@@ -163,7 +163,7 @@ until GitHub has issued the certificate, then you can turn the proxy back on.
 ### 4c. Tell GitHub about the domain
 
 1. Repo → **Settings** → **Pages** → **Custom domain**.
-2. Type `portfolio.hoodworksvideo.com` (or `hoodworksvideo.com`) → **Save**.
+2. Type `portfolio.hoodworks.media` (or `hoodworks.media`) → **Save**.
 
 This automatically creates a file called `CNAME` in your repo containing that one
 line. **Don't delete it** — if it disappears, the custom domain stops working.

@@ -30,7 +30,7 @@ const CONTENT = {
     // 1–3 sentences. Shown under the hero and above the resume.
     bio: "I produce, shoot, and cut video end to end — brand films, social campaigns, motion graphics, and web design that ties it all together. Based in Los Angeles, working with clients nationwide through Hoodworks Media Group.",
 
-    email:    "joe@hoodworksvideo.com",
+    email:    "joe@hoodworks.media",
     phone:    "",                        // leave "" to hide it
     location: "Los Angeles, CA",
 
@@ -139,7 +139,7 @@ const CONTENT = {
     { label: "YouTube Channel",     url: "https://www.youtube.com/@REPLACE-ME",        category: "Reels & Work", icon: "youtube" },
     { label: "Behance",             url: "https://www.behance.net/REPLACE-ME",         category: "Reels & Work", icon: "behance" },
 
-    { label: "Hoodworks Video",     url: "https://hoodworksvideo.com",                 category: "Client Sites", icon: "globe" },
+    { label: "Hoodworks Media Group", url: "https://hoodworks.media",                   category: "Client Sites", icon: "globe" },
     { label: "Client Project Site", url: "https://example.com",                        category: "Client Sites", icon: "globe" },
 
     { label: "Instagram",           url: "https://www.instagram.com/REPLACE-ME",       category: "Social",       icon: "instagram" },
