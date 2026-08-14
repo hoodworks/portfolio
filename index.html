@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0B">
+
+<!-- Title/description are overwritten from content.js at runtime.
+     These are the fallbacks that crawlers see before JS runs. -->
+<title>Joe Hood — Hoodworks Media Group</title>
+<meta name="description" content="Video producer, editor, and motion designer. Portfolio, reels, and resume.">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Joe Hood — Hoodworks Media Group">
+<meta property="og:description" content="Video producer, editor, and motion designer. Portfolio, reels, and resume.">
+<meta property="og:image" content="assets/img/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<!-- ============================================================
+     NOTHING BELOW CONTAINS CONTENT.
+     Every element is filled in by assets/js/site.js from content.js.
+     ============================================================ -->
+
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a class="nav__brand" href="#top">
+      <span class="nav__mark" data-bind="brandMark"></span>
+      <span class="nav__name" data-bind="brandName"></span>
+    </a>
+    <nav class="nav__links" id="navLinks" aria-label="Section navigation"></nav>
+    <button class="nav__toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- HERO -->
+  <section class="hero" id="top">
+    <div class="hero__bg" id="heroBg" aria-hidden="true"></div>
+    <div class="hero__grain" aria-hidden="true"></div>
+    <div class="hero__inner">
+      <p class="hero__eyebrow" data-bind="business"></p>
+      <h1 class="hero__name" data-bind="name"></h1>
+      <p class="hero__title" data-bind="title"></p>
+      <p class="hero__tagline" data-bind="tagline"></p>
+      <div class="hero__cta" id="heroCta"></div>
+      <p class="hero__meta" data-bind="location"></p>
+    </div>
+    <div class="hero__scroll" aria-hidden="true"><span></span></div>
+  </section>
+
+  <!-- VIDEO SHOWCASE -->
+  <section class="section" id="videos" hidden>
+    <div class="wrap">
+      <div class="section__head">
+        <h2 class="section__title" data-bind="videosTitle"></h2>
+        <div class="filters" id="videoFilters" role="group" aria-label="Filter videos by category"></div>
+      </div>
+      <div class="grid grid--video" id="videoGrid"></div>
+      <p class="empty" id="videoEmpty" hidden>No videos in this category yet.</p>
+    </div>
+  </section>
+
+  <!-- PHOTO SHOWCASE -->
+  <section class="section section--alt" id="photos" hidden>
+    <div class="wrap">
+      <div class="section__head">
+        <h2 class="section__title" data-bind="photosTitle"></h2>
+        <div class="filters" id="photoFilters" role="group" aria-label="Filter photos by category"></div>
+      </div>
+      <div class="grid grid--photo" id="photoGrid"></div>
+      <p class="empty" id="photoEmpty" hidden>No photos in this category yet.</p>
+    </div>
+  </section>
+
+  <!-- RESUME -->
+  <section class="section" id="resume" hidden>
+    <div class="wrap">
+      <div class="section__head">
+        <h2 class="section__title" data-bind="resumeTitle"></h2>
+        <a class="btn btn--ghost" id="resumeDownload" href="#" download>
+          <span class="btn__ico" data-icon="download"></span> Download PDF
+        </a>
+      </div>
+      <p class="resume__summary" data-bind="resumeSummary"></p>
+      <div class="resume">
+        <div class="resume__col">
+          <h3 class="resume__h">Experience</h3>
+          <div id="resumeExperience"></div>
+        </div>
+        <aside class="resume__col resume__col--side">
+          <h3 class="resume__h">Skills</h3>
+          <div id="resumeSkills"></div>
+          <h3 class="resume__h" id="eduHead">Education</h3>
+          <div id="resumeEducation"></div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- LINKS -->
+  <section class="section section--alt" id="links" hidden>
+    <div class="wrap">
+      <div class="section__head">
+        <h2 class="section__title" data-bind="linksTitle"></h2>
+      </div>
+      <div id="linkGroups"></div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="section section--contact" id="contact">
+    <div class="wrap wrap--narrow">
+      <h2 class="section__title section__title--center" data-bind="contactTitle"></h2>
+      <p class="contact__blurb" data-bind="contactBlurb"></p>
+      <div class="contact__actions" id="contactActions"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer__inner">
+    <p class="footer__left"><span data-bind="footerName"></span></p>
+    <p class="footer__right" data-bind="footerNote"></p>
+  </div>
+</footer>
+
+<!-- LIGHTBOX (shared by video + photo) -->
+<div class="lb" id="lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Media viewer">
+  <button class="lb__close" id="lbClose" aria-label="Close">&times;</button>
+  <button class="lb__nav lb__nav--prev" id="lbPrev" aria-label="Previous">&#8249;</button>
+  <button class="lb__nav lb__nav--next" id="lbNext" aria-label="Next">&#8250;</button>
+  <div class="lb__stage" id="lbStage"></div>
+  <div class="lb__caption" id="lbCaption"></div>
+</div>
+
+<!-- Data first, renderer second. Order matters. -->
+<script src="content.js"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>
