@@ -64,29 +64,10 @@
     <div class="hero__scroll" aria-hidden="true"><span></span></div>
   </section>
 
-  <!-- VIDEO SHOWCASE -->
-  <section class="section" id="videos" hidden>
-    <div class="wrap">
-      <div class="section__head">
-        <h2 class="section__title" data-bind="videosTitle"></h2>
-        <div class="filters" id="videoFilters" role="group" aria-label="Filter videos by category"></div>
-      </div>
-      <div class="grid grid--video" id="videoGrid"></div>
-      <p class="empty" id="videoEmpty" hidden>No videos in this category yet.</p>
-    </div>
-  </section>
-
-  <!-- PHOTO SHOWCASE -->
-  <section class="section section--alt" id="photos" hidden>
-    <div class="wrap">
-      <div class="section__head">
-        <h2 class="section__title" data-bind="photosTitle"></h2>
-        <div class="filters" id="photoFilters" role="group" aria-label="Filter photos by category"></div>
-      </div>
-      <div class="grid grid--photo" id="photoGrid"></div>
-      <p class="empty" id="photoEmpty" hidden>No photos in this category yet.</p>
-    </div>
-  </section>
+  <!-- VIDEO + PHOTO SHOWCASES
+       One <section> is generated here per entry in settings.videoSections,
+       followed by the photo section when settings.show.photos is true. -->
+  <div id="showcases"></div>
 
   <!-- RESUME -->
   <section class="section" id="resume" hidden>
@@ -109,6 +90,11 @@
           <h3 class="resume__h" id="eduHead">Education</h3>
           <div id="resumeEducation"></div>
         </aside>
+      </div>
+
+      <div class="credits" id="creditsBlock" hidden>
+        <h3 class="resume__h" data-bind="creditsTitle"></h3>
+        <div id="creditGroups"></div>
       </div>
     </div>
   </section>

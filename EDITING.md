@@ -35,11 +35,23 @@ then change the values:
       title:       "My New Project",
       embedUrl:    "https://vimeo.com/123456789",
       orientation: "widescreen",
-      category:    "Brand Film",
+      section:     "directing",
+      category:    "Brand Campaign",
       description: "One line about what this is.",
       thumbnail:   ""
     },
 ```
+
+**`section`** — which of the two showcases the video appears in:
+
+| Value | Section on the page |
+|---|---|
+| `"directing"` | **Directing & Producing** |
+| `"editing"` | **Editing & VFX** |
+
+Both sections read from the same `videos` array — this field is the only thing
+that decides where a video lands. To rename a section or add a third one, edit
+`settings.videoSections` at the bottom of `content.js`.
 
 **`embedUrl`** — just paste the normal share link. All of these work as-is:
 
@@ -71,6 +83,11 @@ YouTube or Vimeo automatically. Only fill it in if you want a custom frame:
 ---
 
 ## Add a photo
+
+> **The photo section is currently switched off.** To show it, open
+> `content.js`, scroll to `settings` at the very bottom, and change
+> `photos: false` to `photos: true` in the `show:` line. The entries are
+> all still there waiting.
 
 Two steps: upload the file, then add the entry.
 
@@ -140,6 +157,24 @@ In `content.js`, find `resume:` and edit `summary`, `experience`, `skills`, and
         ]
       },
 ```
+
+### Selected credits
+
+The credits table under the resume comes from `resume.credits`. One line each:
+
+```js
+      { client: "CLIENT NAME", project: "\"Project Title\"", role: "Director, Editor", year: "2025", group: "Branded Campaigns" },
+```
+
+For music videos, add a `label`:
+
+```js
+      { client: "ARTIST NAME", project: "\"Song Title\"", label: "Record Label", role: "VFX", year: "2025", group: "Music Videos" },
+```
+
+`group` creates the heading — reuse an existing one or type a new one to start
+a new block. To hide the whole credits table, set `showCredits: false` just
+above the array.
 
 ### The downloadable PDF
 

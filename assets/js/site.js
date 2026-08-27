@@ -33,6 +33,9 @@
   }
   function esc(s) { return String(s == null ? "" : s); }
 
+  var navItems = [];   // [id, label] pairs, filled as sections are generated
+  var stripeIdx = 0;   // alternating section backgrounds
+
   /* ---------------------------------------------------------------- icons */
   var ICONS = {
     link:      '<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>',
@@ -73,14 +76,11 @@
   }
 
   /* ------------------------------------------------- video URL utilities */
-  // Accepts watch URLs, short URLs, shorts URLs, or already-built embed URLs.
   function parseVideo(raw) {
     var url = String(raw || "").trim();
     var m;
-    // YouTube
     m = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
     if (m) return { kind: "youtube", id: m[1] };
-    // Vimeo (handles private hash: vimeo.com/123456789/abcdef123)
     m = url.match(/vimeo\.com\/(?:video\/|channels\/[^\/]+\/|groups\/[^\/]+\/videos\/)?(\d+)(?:[\/?#]([A-Za-z0-9]+))?/);
     if (m) return { kind: "vimeo", id: m[1], hash: m[2] || "" };
     return { kind: "other", id: "", src: url };
@@ -97,27 +97,22 @@
     }
     return p.src;
   }
-  // Returns a thumbnail URL immediately when possible; Vimeo resolves async.
   function thumbFor(v, imgEl) {
     if (v.thumbnail) return v.thumbnail;
     var p = parseVideo(v.embedUrl);
     if (p.kind === "youtube") return "https://i.ytimg.com/vi/" + p.id + "/hqdefault.jpg";
     if (p.kind === "vimeo" && imgEl) {
-      // oEmbed is a public JSON endpoint — no key needed. Fails silently offline.
       fetch("https://vimeo.com/api/oembed.json?url=https%3A//vimeo.com/" + p.id)
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (j) {
-          if (j && j.thumbnail_url) {
-            imgEl.src = j.thumbnail_url.replace(/-d_\d+x\d+$/, "-d_960");
-          }
+          if (j && j.thumbnail_url) imgEl.src = j.thumbnail_url.replace(/-d_\d+x\d+$/, "-d_960");
         })
         .catch(function () { /* keep the gradient fallback */ });
     }
     return "";
   }
   // Sub-label under a link. Absolute links show their domain; relative links
-  // (a PDF in this repo, say) show the filename — never the host we're served
-  // from, which would read as "localhost" or "username.github.io".
+  // show the filename — never the host we happen to be served from.
   function hostOf(url) {
     var u = String(url || "");
     if (/^mailto:/i.test(u)) return u.replace(/^mailto:/i, "");
@@ -130,11 +125,11 @@
   /* ------------------------------------------------------------- masonry */
   // Sets each tile's grid-row span from its measured height so 16:9 and 9:16
   // cards pack tightly with no stretching and no dead space.
-  var ROW = 8, GAP = 20;
+  var ROW = 8;
+  function debounce(fn, ms) { var t; return function () { clearTimeout(t); t = setTimeout(fn, ms); }; }
   function layoutGrid(grid) {
     if (!grid) return;
-    var cs = getComputedStyle(grid);
-    var gap = parseFloat(cs.columnGap) || GAP;
+    var gap = parseFloat(getComputedStyle(grid).columnGap) || 20;
     $$(".tile", grid).forEach(function (t) {
       if (t.hidden) return;
       var h = t.firstElementChild ? t.firstElementChild.getBoundingClientRect().height : 0;
@@ -142,44 +137,35 @@
       t.style.gridRowEnd = "span " + Math.ceil((h + gap) / ROW);
     });
   }
-  var layoutAll = debounce(function () {
-    layoutGrid($("#videoGrid"));
-    layoutGrid($("#photoGrid"));
-  }, 60);
-
-  function debounce(fn, ms) {
-    var t; return function () { clearTimeout(t); t = setTimeout(fn, ms); };
-  }
+  var layoutAll = debounce(function () { $$(".grid").forEach(layoutGrid); }, 60);
 
   /* ------------------------------------------------------------ 1. HEAD */
   function renderMeta() {
-    var full = [P.name, P.business].filter(Boolean).join(" — ");
-    document.title = full || "Portfolio";
+    var full = [P.name, P.business].filter(Boolean).join(" — ") || P.name || "Portfolio";
+    document.title = full;
     var d = P.tagline || P.bio || "";
-    setMeta('meta[name="description"]', d);
-    setMeta('meta[property="og:title"]', full, "content");
-    setMeta('meta[property="og:description"]', d, "content");
-  }
-  function setMeta(sel, val) {
-    var n = $(sel); if (n && val) n.setAttribute("content", val);
+    set('meta[name="description"]', d);
+    set('meta[property="og:title"]', full);
+    set('meta[property="og:description"]', d);
+    function set(sel, val) { var n = $(sel); if (n && val) n.setAttribute("content", val); }
   }
 
   /* ------------------------------------------------------------- 2. NAV */
+  // Called AFTER the sections exist, so the nav matches what's on the page.
   function renderNav() {
-    var mark = (P.business || P.name || "HMG").split(/\s+/).map(function (w) { return w[0]; })
-      .join("").slice(0, 3).toUpperCase();
-    $('[data-bind="brandMark"]').textContent = mark;
-    $('[data-bind="brandName"]').textContent = P.name || "";
-
-    var items = [];
-    if (SHOW.videos !== false && (C.videos || []).length) items.push(["videos", T.videos || "Video"]);
-    if (SHOW.photos !== false && (C.photos || []).length) items.push(["photos", T.photos || "Photography"]);
-    if (SHOW.resume !== false && C.resume) items.push(["resume", T.resume || "Resume"]);
-    if (SHOW.links !== false && (C.links || []).length) items.push(["links", T.links || "Links"]);
-    items.push(["contact", T.contact || "Contact"]);
+    var mark = $('[data-bind="brandMark"]');
+    if (P.business) {
+      mark.textContent = P.business.split(/\s+/).map(function (w) { return w[0]; })
+        .join("").slice(0, 3).toUpperCase();
+    } else {
+      mark.remove();                      // no company name -> no wordmark
+    }
+    var nameEl = $('[data-bind="brandName"]');
+    nameEl.textContent = P.name || "";
+    if (!P.business) nameEl.classList.add("nav__name--solo");
 
     var nav = $("#navLinks");
-    items.forEach(function (it) {
+    navItems.forEach(function (it) {
       var a = el("a", null, it[1]);
       a.href = "#" + it[0];
       a.dataset.section = it[0];
@@ -207,7 +193,9 @@
 
   /* ------------------------------------------------------------ 3. HERO */
   function renderHero() {
-    $('[data-bind="business"]').textContent = P.business || "";
+    var biz = $('[data-bind="business"]');
+    if (P.business) biz.textContent = P.business; else biz.remove();
+
     $('[data-bind="name"]').textContent = P.name || "";
     $('[data-bind="title"]').textContent = P.title || "";
     $('[data-bind="tagline"]').textContent = P.tagline || P.bio || "";
@@ -220,125 +208,156 @@
     }
 
     var cta = $("#heroCta");
-    var first = (C.videos || []).length ? "#videos" : ((C.photos || []).length ? "#photos" : "#contact");
-    add(cta, S.heroCtaPrimary || "View Work", first, "btn btn--primary", "play");
-    if (P.resumeUrl) add(cta, S.heroCtaSecondary || "Resume", P.resumeUrl, "btn btn--outline", "download", true);
-    if (P.email) add(cta, S.heroCtaTertiary || "Contact", "#contact", "btn btn--outline", "mail");
+    var first = navItems.length ? "#" + navItems[0][0] : "#contact";
+    add(S.heroCtaPrimary || "View Work", first, "btn btn--primary", "play");
+    if (P.resumeUrl) add(S.heroCtaSecondary || "Resume", "#resume", "btn btn--outline", "download");
+    if (P.email) add(S.heroCtaTertiary || "Contact", "#contact", "btn btn--outline", "mail");
 
-    function add(parent, label, href, cls, ico, isFile) {
+    function add(label, href, cls, ico) {
       var a = el("a", cls);
       a.href = href;
-      if (isFile) { a.target = "_blank"; a.rel = "noopener"; }
       a.innerHTML = '<span class="btn__ico">' + icon(ico) + "</span>" + esc(label);
-      parent.appendChild(a);
+      cta.appendChild(a);
     }
   }
 
-  /* ---------------------------------------------------------- 4. VIDEOS */
-  var videoOrder = []; // indices currently visible, for lightbox prev/next
-
-  function renderVideos() {
-    var list = C.videos || [];
-    if (SHOW.videos === false || !list.length) return;
-    $("#videos").hidden = false;
-    $('[data-bind="videosTitle"]').textContent = T.videos || "Video";
-
-    var grid = $("#videoGrid");
-    list.forEach(function (v, i) {
-      var portrait = String(v.orientation || "").toLowerCase() === "portrait";
-
-      var tile = el("div", "tile");
-      tile.dataset.cat = v.category || "";
-
-      var card = el("button", "vcard");
-      card.type = "button";
-      card.setAttribute("aria-label", "Play " + (v.title || "video"));
-      card.dataset.index = String(i);
-
-      var media = el("div", "vcard__media vcard__media--" + (portrait ? "portrait" : "widescreen"));
-      media.appendChild(el("div", "vcard__fallback"));
-
-      var img = new Image();
-      img.className = "vcard__img";
-      img.loading = "lazy";
-      img.decoding = "async";
-      img.alt = "";
-      img.addEventListener("load", function () { img.classList.add("is-loaded"); layoutAll(); });
-      img.addEventListener("error", function () { img.remove(); });
-      var src = thumbFor(v, img);
-      if (src) img.src = src;
-      media.appendChild(img);
-
-      media.appendChild(el("div", "vcard__scrim"));
-
-      var play = el("div", "vcard__play");
-      play.innerHTML = icon("play");
-      media.appendChild(play);
-
-      if (v.category) media.appendChild(el("span", "vcard__badge", v.category));
-      media.appendChild(el("span", "vcard__ratio", portrait ? "9:16" : "16:9"));
-
-      card.appendChild(media);
-
-      var body = el("div", "vcard__body");
-      body.appendChild(el("h3", "vcard__title", v.title || "Untitled"));
-      if (v.description) body.appendChild(el("p", "vcard__desc", v.description));
-      card.appendChild(body);
-
-      card.addEventListener("click", function () { openVideo(i); });
-
-      tile.appendChild(card);
-      grid.appendChild(tile);
-    });
-
-    buildFilters($("#videoFilters"), list, grid, $("#videoEmpty"), function () {
-      videoOrder = $$(".tile", grid).filter(function (t) { return !t.hidden; })
-        .map(function (t) { return Number($(".vcard", t).dataset.index); });
-    });
+  /* ------------------------------------------------- 4. SECTION BUILDER */
+  function buildSection(id, title, filterLabel) {
+    var sec = el("section", "section" + (stripeIdx++ % 2 === 1 ? " section--alt" : ""));
+    sec.id = id;
+    var wrap = el("div", "wrap");
+    var head = el("div", "section__head");
+    var h2 = el("h2", "section__title", title);
+    var filters = el("div", "filters");
+    filters.setAttribute("role", "group");
+    filters.setAttribute("aria-label", filterLabel || ("Filter " + title));
+    head.appendChild(h2); head.appendChild(filters);
+    var grid = el("div", "grid");
+    var empty = el("p", "empty", "Nothing in this category yet.");
+    empty.hidden = true;
+    wrap.appendChild(head); wrap.appendChild(grid); wrap.appendChild(empty);
+    sec.appendChild(wrap);
+    return { el: sec, grid: grid, filters: filters, empty: empty };
   }
 
-  /* ---------------------------------------------------------- 5. PHOTOS */
-  var photoOrder = [];
-
-  function renderPhotos() {
-    var list = C.photos || [];
-    if (SHOW.photos === false || !list.length) return;
-    $("#photos").hidden = false;
-    $('[data-bind="photosTitle"]').textContent = T.photos || "Photography";
-
-    var grid = $("#photoGrid");
-    list.forEach(function (p, i) {
-      var tile = el("div", "tile");
-      tile.dataset.cat = p.category || "";
-
-      var card = el("button", "pcard");
-      card.type = "button";
-      card.dataset.index = String(i);
-      card.setAttribute("aria-label", "Open " + (p.alt || "photo"));
-
-      var img = new Image();
-      img.src = p.src;
-      img.alt = p.alt || "";
-      img.loading = "lazy";
-      img.decoding = "async";
-      img.addEventListener("load", function () { img.classList.add("is-loaded"); layoutAll(); });
-      card.appendChild(img);
-
-      if (p.caption) card.appendChild(el("span", "pcard__cap", p.caption));
-      card.addEventListener("click", function () { openPhoto(i); });
-
-      tile.appendChild(card);
-      grid.appendChild(tile);
-    });
-
-    buildFilters($("#photoFilters"), list, grid, $("#photoEmpty"), function () {
-      photoOrder = $$(".tile", grid).filter(function (t) { return !t.hidden; })
-        .map(function (t) { return Number($("button", t).dataset.index); });
-    });
+  function visibleIndices(grid) {
+    return $$(".tile", grid).filter(function (t) { return !t.hidden; })
+      .map(function (t) { return Number(t.dataset.index); });
   }
 
-  /* --------------------------------------------------------- 6. FILTERS */
-  function buildFilters(host, list, grid, emptyEl, onChange) {
+  /* -------------------------------------------------------- 5. VIDEOS */
+  function videoTile(v, list, i, grid) {
+    var portrait = String(v.orientation || "").toLowerCase() === "portrait";
+
+    var tile = el("div", "tile tile--" + (portrait ? "portrait" : "wide"));
+    tile.dataset.cat = v.category || "";
+    tile.dataset.index = String(i);
+
+    var card = el("button", "vcard");
+    card.type = "button";
+    card.setAttribute("aria-label", "Play " + (v.title || "video"));
+
+    var media = el("div", "vcard__media vcard__media--" + (portrait ? "portrait" : "widescreen"));
+    media.appendChild(el("div", "vcard__fallback"));
+
+    var img = new Image();
+    img.className = "vcard__img";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.alt = "";
+    img.addEventListener("load", function () { img.classList.add("is-loaded"); layoutAll(); });
+    img.addEventListener("error", function () { img.remove(); });
+    var src = thumbFor(v, img);
+    if (src) img.src = src;
+    media.appendChild(img);
+
+    media.appendChild(el("div", "vcard__scrim"));
+    var play = el("div", "vcard__play");
+    play.innerHTML = icon("play");
+    media.appendChild(play);
+
+    if (v.category) media.appendChild(el("span", "vcard__badge", v.category));
+    media.appendChild(el("span", "vcard__ratio", portrait ? "9:16" : "16:9"));
+    card.appendChild(media);
+
+    var body = el("div", "vcard__body");
+    body.appendChild(el("h3", "vcard__title", v.title || "Untitled"));
+    if (v.description) body.appendChild(el("p", "vcard__desc", v.description));
+    card.appendChild(body);
+
+    card.addEventListener("click", function () {
+      openLightbox("video", list, visibleIndices(grid), i);
+    });
+
+    tile.appendChild(card);
+    return tile;
+  }
+
+  /* -------------------------------------------------------- 6. PHOTOS */
+  function photoTile(p, list, i, grid) {
+    var tile = el("div", "tile");
+    tile.dataset.cat = p.category || "";
+    tile.dataset.index = String(i);
+
+    var card = el("button", "pcard");
+    card.type = "button";
+    card.setAttribute("aria-label", "Open " + (p.alt || "photo"));
+
+    var img = new Image();
+    img.src = p.src;
+    img.alt = p.alt || "";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.addEventListener("load", function () { img.classList.add("is-loaded"); layoutAll(); });
+    card.appendChild(img);
+
+    if (p.caption) card.appendChild(el("span", "pcard__cap", p.caption));
+    card.addEventListener("click", function () {
+      openLightbox("photo", list, visibleIndices(grid), i);
+    });
+
+    tile.appendChild(card);
+    return tile;
+  }
+
+  /* ---------------------------------------------------- 7. SHOWCASES */
+  function renderShowcases() {
+    var host = $("#showcases");
+
+    if (SHOW.videos !== false) {
+      var secs = S.videoSections || [];
+      if (!secs.length) secs = [{ id: "work", title: "Work" }];
+      var defaultId = secs[0].id;
+
+      secs.forEach(function (sec) {
+        var list = (C.videos || []).filter(function (v) {
+          return (v.section || defaultId) === sec.id;
+        });
+        if (!list.length) return;
+
+        var block = buildSection(sec.id, sec.title, "Filter " + sec.title + " by category");
+        block.grid.classList.add("grid--video");
+        host.appendChild(block.el);
+
+        list.forEach(function (v, i) { block.grid.appendChild(videoTile(v, list, i, block.grid)); });
+        buildFilters(block.filters, list, block.grid, block.empty);
+        navItems.push([sec.id, sec.title]);
+      });
+    }
+
+    if (SHOW.photos !== false && (C.photos || []).length) {
+      var pList = C.photos;
+      var pb = buildSection("photos", T.photos || "Photography", "Filter photos by category");
+      pb.grid.classList.add("grid--photo");
+      host.appendChild(pb.el);
+      pList.forEach(function (p, i) { pb.grid.appendChild(photoTile(p, pList, i, pb.grid)); });
+      buildFilters(pb.filters, pList, pb.grid, pb.empty);
+      navItems.push(["photos", T.photos || "Photography"]);
+    }
+  }
+
+  /* --------------------------------------------------------- 8. FILTERS */
+  function buildFilters(host, list, grid, emptyEl) {
     var cats = [];
     list.forEach(function (x) {
       var c = (x.category || "").trim();
@@ -352,14 +371,12 @@
         if (show) visible++;
       });
       if (emptyEl) emptyEl.hidden = visible > 0;
-      onChange();
       layoutAll();
     };
 
-    if (cats.length < 2) { apply("*"); return; } // one category = no filter bar
+    if (cats.length < 2) { apply("*"); return; }   // one category = no filter bar
 
-    var all = [["*", "All"]].concat(cats.map(function (c) { return [c, c]; }));
-    all.forEach(function (pair, i) {
+    [["*", "All"]].concat(cats.map(function (c) { return [c, c]; })).forEach(function (pair, i) {
       var b = el("button", i === 0 ? "is-active" : null, pair[1]);
       b.type = "button";
       b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
@@ -375,17 +392,21 @@
     apply("*");
   }
 
-  /* ---------------------------------------------------------- 7. RESUME */
+  /* ---------------------------------------------------------- 9. RESUME */
   function renderResume() {
     var R = C.resume;
-    if (SHOW.resume === false || !R) return;
-    $("#resume").hidden = false;
+    if (SHOW.resume === false || !R) { $("#resume").remove(); return; }
+    var sec = $("#resume");
+    sec.hidden = false;
+    if (stripeIdx++ % 2 === 1) sec.classList.add("section--alt");
+
     $('[data-bind="resumeTitle"]').textContent = T.resume || "Resume";
     $('[data-bind="resumeSummary"]').textContent = R.summary || P.bio || "";
 
     var dl = $("#resumeDownload");
     if (P.resumeUrl) {
       dl.href = P.resumeUrl;
+      dl.target = "_blank"; dl.rel = "noopener";
       dl.innerHTML = '<span class="btn__ico">' + icon("download") + "</span>Download PDF";
     } else { dl.remove(); }
 
@@ -428,13 +449,53 @@
       w.appendChild(el("p", "edu__meta", [e.school, e.year].filter(Boolean).join(" · ")));
       ed.appendChild(w);
     });
+
+    renderCredits(R);
+    navItems.push(["resume", T.resume || "Resume"]);
   }
 
-  /* ----------------------------------------------------------- 8. LINKS */
+  /* --------------------------------------------------------- 10. CREDITS */
+  function renderCredits(R) {
+    var list = R.credits || [];
+    if (R.showCredits === false || !list.length) return;
+    $("#creditsBlock").hidden = false;
+    $('[data-bind="creditsTitle"]').textContent = T.credits || "Selected Credits";
+
+    var groups = {}, order = [];
+    list.forEach(function (c) {
+      var g = (c.group || "Credits").trim();
+      if (!groups[g]) { groups[g] = []; order.push(g); }
+      groups[g].push(c);
+    });
+
+    var host = $("#creditGroups");
+    order.forEach(function (g) {
+      var wrap = el("div", "creditgroup");
+      wrap.appendChild(el("p", "creditgroup__name", g));
+      var table = el("div", "credittable");
+      groups[g].forEach(function (c) {
+        var row = el("div", "creditrow");
+        row.appendChild(el("span", "creditrow__client", c.client || ""));
+        var mid = el("span", "creditrow__project");
+        mid.textContent = c.project || "";
+        if (c.label) mid.appendChild(el("span", "creditrow__label", c.label));
+        row.appendChild(mid);
+        row.appendChild(el("span", "creditrow__role", c.role || ""));
+        row.appendChild(el("span", "creditrow__year", c.year || ""));
+        table.appendChild(row);
+      });
+      wrap.appendChild(table);
+      host.appendChild(wrap);
+    });
+  }
+
+  /* ---------------------------------------------------------- 11. LINKS */
   function renderLinks() {
     var list = C.links || [];
-    if (SHOW.links === false || !list.length) return;
-    $("#links").hidden = false;
+    if (SHOW.links === false || !list.length) { $("#links").remove(); return; }
+    var sec = $("#links");
+    sec.hidden = false;
+    sec.classList.toggle("section--alt", stripeIdx++ % 2 === 1);
     $('[data-bind="linksTitle"]').textContent = T.links || "Links";
 
     var groups = {}, order = [];
@@ -452,8 +513,7 @@
       groups[g].forEach(function (l) {
         var a = el("a", "linkcard");
         a.href = l.url || "#";
-        var external = /^https?:/i.test(l.url || "");
-        if (external) { a.target = "_blank"; a.rel = "noopener noreferrer"; }
+        if (/^https?:/i.test(l.url || "")) { a.target = "_blank"; a.rel = "noopener noreferrer"; }
         a.innerHTML =
           '<span class="linkcard__ico">' + icon(l.icon || guessIcon(l.url, l.label)) + "</span>" +
           '<span class="linkcard__label">' + esc(l.label || l.url) +
@@ -464,9 +524,10 @@
       wrap.appendChild(grid);
       host.appendChild(wrap);
     });
+    navItems.push(["links", T.links || "Links"]);
   }
 
-  /* --------------------------------------------------------- 9. CONTACT */
+  /* -------------------------------------------------------- 12. CONTACT */
   function renderContact() {
     $('[data-bind="contactTitle"]').textContent = T.contact || "Get In Touch";
     $('[data-bind="contactBlurb"]').textContent = S.contactBlurb || "";
@@ -479,19 +540,21 @@
       a.innerHTML = '<span class="btn__ico">' + icon(ico) + "</span>" + esc(label);
       host.appendChild(a);
     }
+    navItems.push(["contact", T.contact || "Get In Touch"]);
+
     $('[data-bind="footerName"]').textContent =
       "© " + new Date().getFullYear() + " " + (P.name || "") + (P.business ? " · " + P.business : "");
-    $('[data-bind="footerNote"]').textContent = S.footerNote || "";
+    var note = $('[data-bind="footerNote"]');
+    if (S.footerNote) note.textContent = S.footerNote; else note.remove();
   }
 
-  /* ------------------------------------------------------- 10. LIGHTBOX */
+  /* ------------------------------------------------------- 13. LIGHTBOX */
   var lb = $("#lightbox"), lbStage = $("#lbStage"), lbCap = $("#lbCaption");
-  var lbMode = null, lbPos = 0, lastFocus = null;
+  var lbMode = null, lbList = [], lbOrder = [], lbPos = 0, lastFocus = null;
 
-  function openVideo(index) { lbMode = "video"; lbPos = Math.max(0, videoOrder.indexOf(index)); showLb(); }
-  function openPhoto(index) { lbMode = "photo"; lbPos = Math.max(0, photoOrder.indexOf(index)); showLb(); }
-
-  function showLb() {
+  function openLightbox(mode, list, order, index) {
+    lbMode = mode; lbList = list; lbOrder = order.length ? order : [index];
+    lbPos = Math.max(0, lbOrder.indexOf(index));
     lastFocus = document.activeElement;
     lb.hidden = false;
     lb.setAttribute("aria-hidden", "false");
@@ -504,33 +567,31 @@
   function paintLb() {
     lbStage.innerHTML = "";
     lbCap.innerHTML = "";
-    var order = lbMode === "video" ? videoOrder : photoOrder;
-    var multi = order.length > 1;
+    var multi = lbOrder.length > 1;
     $("#lbPrev").hidden = !multi;
     $("#lbNext").hidden = !multi;
-    if (!order.length) return;
+    var item = lbList[lbOrder[lbPos]];
+    if (!item) return;
 
     if (lbMode === "video") {
-      var v = C.videos[order[lbPos]];
-      var portrait = String(v.orientation || "").toLowerCase() === "portrait";
+      var portrait = String(item.orientation || "").toLowerCase() === "portrait";
       var frame = el("div", "lb__frame lb__frame--" + (portrait ? "portrait" : "widescreen"));
       var f = document.createElement("iframe");
-      f.src = embedSrc(v);
-      f.title = v.title || "Video";
+      f.src = embedSrc(item);
+      f.title = item.title || "Video";
       f.allow = "autoplay; fullscreen; picture-in-picture; encrypted-media";
       f.setAttribute("allowfullscreen", "");
       f.referrerPolicy = "strict-origin-when-cross-origin";
       frame.appendChild(f);
       lbStage.appendChild(frame);
-      lbCap.innerHTML = "<strong>" + esc(v.title || "") + "</strong>" + esc(v.description || "");
+      lbCap.innerHTML = "<strong>" + esc(item.title || "") + "</strong>" + esc(item.description || "");
     } else {
-      var p = C.photos[order[lbPos]];
       var img = new Image();
       img.className = "lb__img";
-      img.src = p.src;
-      img.alt = p.alt || "";
+      img.src = item.src;
+      img.alt = item.alt || "";
       lbStage.appendChild(img);
-      if (p.caption || p.alt) lbCap.textContent = p.caption || p.alt;
+      if (item.caption || item.alt) lbCap.textContent = item.caption || item.alt;
     }
   }
 
@@ -539,15 +600,14 @@
     setTimeout(function () {
       lb.hidden = true;
       lb.setAttribute("aria-hidden", "true");
-      lbStage.innerHTML = "";       // kills the iframe → stops playback
+      lbStage.innerHTML = "";       // kills the iframe -> stops playback
       document.body.classList.remove("is-locked");
       if (lastFocus && lastFocus.focus) lastFocus.focus();
     }, 240);
   }
   function step(d) {
-    var order = lbMode === "video" ? videoOrder : photoOrder;
-    if (!order.length) return;
-    lbPos = (lbPos + d + order.length) % order.length;
+    if (!lbOrder.length) return;
+    lbPos = (lbPos + d + lbOrder.length) % lbOrder.length;
     paintLb();
   }
 
@@ -561,7 +621,6 @@
     else if (e.key === "ArrowLeft") step(-1);
     else if (e.key === "ArrowRight") step(1);
     else if (e.key === "Tab") {
-      // simple focus containment
       var f = $$("button, iframe, a[href]", lb).filter(function (n) { return !n.hidden; });
       if (!f.length) return;
       var i = f.indexOf(document.activeElement);
@@ -570,7 +629,7 @@
     }
   });
 
-  /* ------------------------------------------------- 11. SCROLL EFFECTS */
+  /* ------------------------------------------------- 14. SCROLL EFFECTS */
   function initReveal() {
     if (!("IntersectionObserver" in window)) return;
     var io = new IntersectionObserver(function (entries) {
@@ -580,9 +639,7 @@
     }, { rootMargin: "0px 0px -8% 0px", threshold: .06 });
     // Deliberately NOT applied to .tile — filtered-out tiles would never
     // intersect, and would stay invisible when filtered back in.
-    $$(".section .wrap > *").forEach(function (n) {
-      n.classList.add("reveal"); io.observe(n);
-    });
+    $$(".section .wrap > *").forEach(function (n) { n.classList.add("reveal"); io.observe(n); });
   }
   function initSpy() {
     if (!("IntersectionObserver" in window)) return;
@@ -593,21 +650,20 @@
         links.forEach(function (a) { a.classList.toggle("is-active", a.dataset.section === en.target.id); });
       });
     }, { rootMargin: "-45% 0px -50% 0px" });
-    ["videos", "photos", "resume", "links", "contact"].forEach(function (id) {
-      var s = document.getElementById(id);
-      if (s && !s.hidden) io.observe(s);
+    navItems.forEach(function (it) {
+      var s = document.getElementById(it[0]);
+      if (s) io.observe(s);
     });
   }
 
   /* --------------------------------------------------------------- BOOT */
   renderMeta();
-  renderNav();
-  renderHero();
-  renderVideos();
-  renderPhotos();
+  renderShowcases();   // builds sections and fills navItems, in page order
   renderResume();
   renderLinks();
   renderContact();
+  renderHero();        // needs navItems for the "View Work" target
+  renderNav();         // needs navItems for the menu
 
   layoutAll();
   window.addEventListener("resize", layoutAll);
