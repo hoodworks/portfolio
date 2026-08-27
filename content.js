@@ -43,7 +43,28 @@ const CONTENT = {
     // Relative path. Drop your PDF in assets/resume/ and point to it here.
     resumeUrl: "assets/resume/joe-hood-resume.pdf",
 
-    // Optional hero background image (relative path). "" = clean gradient only.
+    /* ---- HERO BACKGROUND VIDEO -------------------------------------------
+       Paste any YouTube or Vimeo link. It plays muted, on loop, with no
+       controls and no sound, cropped to fill the screen behind your name.
+       Set to "" to switch it off and fall back to heroImage / the gradient.
+
+       Use a clean, slow-moving clip. Fast cuts behind text read as noise.
+    ---------------------------------------------------------------------- */
+    heroVideo: "https://www.youtube.com/watch?v=kjH5QcNz8fs",
+
+    // Play the hero video on phones too? true looks better; false saves the
+    // visitor a few MB of cellular data and shows heroImage instead.
+    heroVideoMobile: true,
+
+    // How much the video is darkened so the text stays readable.
+    // 0 = raw video (text may be unreadable), 1 = almost black. 0.75 is tuned
+    // so the left side stays readable and the right side stays watchable.
+    heroOverlay: 0.75,
+
+    // Still image behind the video (shows instantly while the video loads,
+    // and is what phones see if heroVideoMobile is false).
+    // Leave "" and the site pulls the video's own thumbnail automatically.
+    // Or point it at your own frame: "assets/img/hero-still.jpg"
     heroImage: ""
   },
 

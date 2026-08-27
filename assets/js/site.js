@@ -201,11 +201,7 @@
     $('[data-bind="tagline"]').textContent = P.tagline || P.bio || "";
     $('[data-bind="location"]').textContent = P.location || "";
 
-    if (P.heroImage) {
-      var bg = $("#heroBg");
-      bg.classList.add("has-image");
-      bg.style.backgroundImage = "url('" + P.heroImage + "')";
-    }
+    renderHeroBackground();
 
     var cta = $("#heroCta");
     var first = navItems.length ? "#" + navItems[0][0] : "#contact";
@@ -219,6 +215,84 @@
       a.innerHTML = '<span class="btn__ico">' + icon(ico) + "</span>" + esc(label);
       cta.appendChild(a);
     }
+  }
+
+  /* ------------------------------------------- 3b. HERO BACKGROUND VIDEO */
+  function mq(q) {
+    return (window.matchMedia && window.matchMedia(q).matches) || false;
+  }
+
+  function renderHeroBackground() {
+    var bg = $("#heroBg"), holder = $("#heroVideo"), scrim = $("#heroScrim");
+
+    var overlay = (typeof P.heroOverlay === "number") ? P.heroOverlay : 0.75;
+    scrim.style.setProperty("--hero-overlay", Math.max(0, Math.min(1, overlay)));
+
+    var parsed = P.heroVideo ? parseVideo(P.heroVideo) : null;
+    var hasVideo = !!(parsed && parsed.kind !== "other");
+
+    /* ---- the still that sits behind everything -------------------------- */
+    if (P.heroImage) {
+      setPoster(P.heroImage);
+    } else if (hasVideo && parsed.kind === "youtube") {
+      // Prefer the 1280px frame, fall back to the one that always exists.
+      var hi = "https://i.ytimg.com/vi/" + parsed.id + "/maxresdefault.jpg";
+      var probe = new Image();
+      probe.onload = function () { setPoster(probe.naturalWidth > 320 ? hi : ytFallback()); };
+      probe.onerror = function () { setPoster(ytFallback()); };
+      probe.src = hi;
+    } else if (hasVideo && parsed.kind === "vimeo") {
+      fetch("https://vimeo.com/api/oembed.json?url=https%3A//vimeo.com/" + parsed.id)
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) { if (j && j.thumbnail_url) setPoster(j.thumbnail_url.replace(/-d_\d+x\d+$/, "-d_1920")); })
+        .catch(function () { /* gradient stays */ });
+    }
+    function ytFallback() { return "https://i.ytimg.com/vi/" + parsed.id + "/hqdefault.jpg"; }
+    function setPoster(url) {
+      bg.classList.add("has-image");
+      bg.style.backgroundImage = "url('" + url + "')";
+    }
+
+    if (!hasVideo) { scrim.remove(); return; }
+    $(".hero").classList.add("has-video");
+
+    /* ---- should the video actually play here? --------------------------- */
+    // Respect the OS "reduce motion" setting, and the mobile opt-out.
+    if (mq("(prefers-reduced-motion: reduce)")) return;
+    if (P.heroVideoMobile === false && mq("(max-width: 760px)")) return;
+
+    var src;
+    if (parsed.kind === "youtube") {
+      src = "https://www.youtube-nocookie.com/embed/" + parsed.id +
+            "?autoplay=1&mute=1&controls=0&loop=1&playlist=" + parsed.id +
+            "&playsinline=1&modestbranding=1&rel=0&disablekb=1&fs=0" +
+            "&iv_load_policy=3&cc_load_policy=0";
+    } else {
+      src = "https://player.vimeo.com/video/" + parsed.id +
+            (parsed.hash ? "?h=" + parsed.hash + "&" : "?") +
+            "autoplay=1&muted=1&loop=1&background=1&dnt=1";
+    }
+
+    var f = document.createElement("iframe");
+    f.src = src;
+    f.title = "Background showreel";
+    f.tabIndex = -1;
+    f.setAttribute("aria-hidden", "true");
+    f.allow = "autoplay; encrypted-media; picture-in-picture";
+    f.referrerPolicy = "strict-origin-when-cross-origin";
+    f.frameBorder = "0";
+    holder.appendChild(f);
+
+    // Fade up once the player has had a moment to start, so viewers never
+    // see a black rectangle drop over the poster.
+    var revealed = false;
+    var reveal = function () {
+      if (revealed) return;
+      revealed = true;
+      holder.classList.add("is-playing");
+    };
+    f.addEventListener("load", function () { setTimeout(reveal, 900); });
+    setTimeout(reveal, 3500);   // belt and braces if `load` never fires
   }
 
   /* ------------------------------------------------- 4. SECTION BUILDER */
