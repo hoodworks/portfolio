@@ -343,14 +343,11 @@ const CONTENT = {
     { label: "IMDb",                url: "https://www.imdb.com/name/nm5397913/",       category: "Professional", icon: "imdb" },
     { label: "Resume (PDF)",        url: "assets/resume/joe-hood-resume.pdf",          category: "Professional", icon: "download" },
 
-    { label: "Vimeo Portfolio",     url: "https://vimeo.com/REPLACE-ME",               category: "Reels & Work", icon: "vimeo" },
     { label: "YouTube Channel",     url: "https://www.youtube.com/@hoodworksmedia",        category: "Reels & Work", icon: "youtube" },
-    { label: "Behance",             url: "https://www.behance.net/REPLACE-ME",         category: "Reels & Work", icon: "behance" },
 
     { label: "Hoodworks Media Group", url: "https://hoodworks.media",                  category: "Client Sites", icon: "globe" },
 
     { label: "Instagram",           url: "https://www.instagram.com/joehood_/",       category: "Social",       icon: "instagram" },
-    { label: "TikTok",              url: "https://www.tiktok.com/@REPLACE-ME",         category: "Social",       icon: "tiktok" }
   ],
 
 
