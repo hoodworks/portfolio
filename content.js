@@ -346,6 +346,7 @@ const CONTENT = {
     { label: "YouTube Channel",     url: "https://www.youtube.com/@hoodworksmedia",        category: "Reels & Work", icon: "youtube" },
 
     { label: "Hoodworks Media Group", url: "https://hoodworks.media",                  category: "Client Sites", icon: "globe" },
+    { label: "HMG Tools",           url: "https://tools.hoodworks.media",             category: "Client Sites", icon: "download" },
 
     { label: "Instagram",           url: "https://www.instagram.com/joehood_/",       category: "Social",       icon: "instagram" },
   ],
